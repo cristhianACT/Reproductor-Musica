@@ -12,6 +12,8 @@ import { PlayerController } from './controllers/player-controller.js';
 import { LibraryController } from './controllers/library-controller.js';
 import { PlaylistController } from './controllers/playlist-controller.js';
 
+import { offlineManager } from './services/offline-manager.js';
+
 class App {
   constructor() {
     this.audioEngine = new AudioEngine();
@@ -24,6 +26,8 @@ class App {
 
   async init() {
     perf.init();
+    await offlineManager.init();
+    this._initNetworkListeners();
     if (platform.isMobile || platform.isCapacitor) {
       document.body.classList.add('is-mobile-platform');
     }
@@ -39,6 +43,18 @@ class App {
       this.state.setAllTracks([]);
       await this.libraryController.checkInitialMusic();
     }
+  }
+
+  _initNetworkListeners() {
+    const update = () => {
+      const isOff = !navigator.onLine;
+      document.body.classList.toggle('is-network-offline', isOff);
+      this.state.setNetworkOffline(isOff);
+      if (isOff) this.state.setView('offline');
+    };
+    window.addEventListener('online', () => { update(); showToast('Conexión a internet restaurada'); });
+    window.addEventListener('offline', () => { update(); showToast('Sin conexión: cambiado a Modo Offline'); });
+    update();
   }
 
   _initVisualizer() {
@@ -72,12 +88,14 @@ class App {
     const navs = document.querySelectorAll('.sidebar-nav .nav-item, .mobile-bottom-nav .nav-item');
     navs.forEach(item => {
       item.addEventListener('click', () => {
-        const view = item.getAttribute('data-view') || 'library';
-        navs.forEach(n => n.classList.toggle('active', n.getAttribute('data-view') === view));
+        const view = item.getAttribute('data-view') || 'home';
         if (DOM.topbar.searchInput) DOM.topbar.searchInput.value = '';
         DOM.topbar.searchBox?.classList.remove('has-text');
         this.state.setView(view);
       });
+    });
+    this.state.on('view:changed', (view) => {
+      navs.forEach(n => n.classList.toggle('active', n.getAttribute('data-view') === view));
     });
   }
 

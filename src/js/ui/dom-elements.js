@@ -26,8 +26,11 @@ export const DOM = {
   // Barra superior de contenido (Topbar)
   topbar: {
     get searchBox() { return document.getElementById('searchBox'); },
-    get searchInput() { return document.getElementById('searchInput'); },
+    get searchInput() { return /** @type {HTMLInputElement | null} */ (document.getElementById('searchInput')); },
     get clearSearchBtn() { return document.getElementById('clearSearchBtn'); },
+    get searchModePills() { return document.getElementById('searchModePills'); },
+    get pillSearchLocal() { return document.getElementById('pillSearchLocal'); },
+    get pillSearchOnline() { return document.getElementById('pillSearchOnline'); },
     get sortBtn() { return document.getElementById('sortBtn'); },
     get sortLabel() { return document.getElementById('sortLabel'); },
     get addFilesBtn() { return document.getElementById('addFilesBtn'); },
@@ -41,10 +44,14 @@ export const DOM = {
     get heroCover() { return document.getElementById('heroCover'); },
     get heroTag() { return document.getElementById('heroTag'); },
     get heroTitle() { return document.getElementById('heroTitle'); },
+    get heroMeta() { return document.getElementById('heroMeta'); },
     get heroTrackCount() { return document.getElementById('heroTrackCount'); },
     get heroDuration() { return document.getElementById('heroDuration'); },
     get playAllBtn() { return document.getElementById('playAllBtn'); },
     get shuffleAllBtn() { return document.getElementById('shuffleAllBtn'); },
+    get homeFeedView() { return document.getElementById('homeFeedView'); },
+    get categorizedSearchView() { return document.getElementById('categorizedSearchView'); },
+    get libraryTabsNav() { return document.getElementById('libraryTabsNav'); },
     get trackTable() { return document.getElementById('trackTable'); },
     get trackListBody() { return document.getElementById('trackListBody'); },
     get gridView() { return document.getElementById('gridView'); },
@@ -71,10 +78,13 @@ export const DOM = {
 
   // Barra de reproducción inferior (Player Bar)
   player: {
+    get bar() { return document.getElementById('playerBar'); },
     get nowPlayingArt() { return document.getElementById('nowPlayingArt'); },
     get nowPlayingTitle() { return document.getElementById('nowPlayingTitle'); },
     get nowPlayingArtist() { return document.getElementById('nowPlayingArtist'); },
+    get playerDownloadBtn() { return document.getElementById('playerDownloadBtn'); },
     get nowPlayingFavBtn() { return document.getElementById('nowPlayingFavBtn'); },
+    get lyricsBtn() { return document.getElementById('lyricsBtn'); },
     get shuffleBtn() { return document.getElementById('shuffleBtn'); },
     get prevBtn() { return document.getElementById('prevBtn'); },
     get playPauseBtn() { return document.getElementById('playPauseBtn'); },

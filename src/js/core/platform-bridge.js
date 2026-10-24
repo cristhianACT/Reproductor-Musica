@@ -179,6 +179,24 @@ class PlatformBridge {
     }
   }
 
+  async saveDownloadedTrack(data) {
+    // @ts-ignore
+    if (this.isElectron && window.electronAPI?.saveDownloadedTrack) {
+      // @ts-ignore
+      return await window.electronAPI.saveDownloadedTrack(data);
+    }
+    return { success: false };
+  }
+
+  async deleteDownloadedTrack(filePath) {
+    // @ts-ignore
+    if (this.isElectron && window.electronAPI?.deleteDownloadedTrack) {
+      // @ts-ignore
+      return await window.electronAPI.deleteDownloadedTrack(filePath);
+    }
+    return false;
+  }
+
   // ==========================================
   // Procesador Interno de Archivos Web/Móvil
   // ==========================================
@@ -187,44 +205,33 @@ class PlatformBridge {
     const tracks = [];
     for (const file of files) {
       const id = 'web_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+      const name = file.name.replace(/\.[^/.]+$/, "");
       const ext = (file.name.split('.').pop() || 'mp3').toUpperCase();
-
       this._webFileMap.set(id, file);
 
       const track = {
-        id,
-        title: nameWithoutExt,
-        artist: 'Artista Desconocido',
-        album: 'Biblioteca Local',
-        duration: 0,
-        path: file.name,
-        fileName: file.name,
-        format: ext,
-        cover: null
+        id, title: name, artist: 'Artista Desconocido', album: 'Biblioteca Local',
+        duration: 0, path: file.name, fileName: file.name, format: ext, cover: null
       };
 
-      if (nameWithoutExt.includes(' - ')) {
-        const parts = nameWithoutExt.split(' - ');
+      if (name.includes(' - ')) {
+        const parts = name.split(' - ');
         track.artist = parts[0].trim();
         track.title = parts.slice(1).join(' - ').trim();
       }
 
       try {
         const tempUrl = URL.createObjectURL(file);
-        const tempAudio = new Audio();
-        tempAudio.preload = 'metadata';
-        tempAudio.src = tempUrl;
-        await new Promise((resolve) => {
-          const cleanup = () => { URL.revokeObjectURL(tempUrl); resolve(null); };
-          tempAudio.onloadedmetadata = () => {
-            if (isFinite(tempAudio.duration) && tempAudio.duration > 0) track.duration = Math.round(tempAudio.duration);
-            cleanup();
-          };
-          tempAudio.onerror = cleanup;
-          setTimeout(cleanup, 1000);
+        const audio = new Audio();
+        audio.preload = 'metadata';
+        audio.src = tempUrl;
+        await new Promise((res) => {
+          const done = () => { URL.revokeObjectURL(tempUrl); res(null); };
+          audio.onloadedmetadata = () => { if (audio.duration > 0) track.duration = Math.round(audio.duration); done(); };
+          audio.onerror = done;
+          setTimeout(done, 1000);
         });
-      } catch (err) {}
+      } catch {}
       tracks.push(track);
     }
     return tracks;

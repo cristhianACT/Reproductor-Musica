@@ -469,6 +469,127 @@
 }
 
 /* ==========================================================
+   MICRO-INTERACCIONES DE DESCARGA OFFLINE (EMIL KOWALSKI)
+   ========================================================== */
+.download-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: opacity 120ms var(--ease-out-expo), color 120ms var(--ease-out-expo), transform 160ms var(--ease-spring);
+  opacity: 0;
+}
+
+.track-row:hover .download-btn,
+.download-btn.is-downloaded,
+.download-btn.is-downloading {
+  opacity: 1;
+}
+
+.download-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+.download-btn:active {
+  transform: scale(0.92);
+}
+
+/* Estado 2: Descargando */
+.download-btn.is-downloading {
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.download-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-medium);
+  border-top-color: var(--text-primary);
+  animation: auraDownloadSpin 0.7s linear infinite;
+}
+
+@keyframes auraDownloadSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Estado 3: Disponible Offline con micro-animación spring */
+.download-btn.is-downloaded {
+  color: var(--text-secondary);
+}
+
+.download-btn.is-downloaded:hover {
+  color: var(--text-primary);
+}
+
+.download-btn.is-downloaded svg.check-icon {
+  animation: auraSpringCheck 280ms var(--ease-spring);
+}
+
+@keyframes auraSpringCheck {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Micro-Badges minimalistas de metadata */
+.track-artist-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.badge-offline {
+  display: inline-flex;
+  align-items: center;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid var(--border-hairline);
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.badge-online {
+  display: inline-flex;
+  align-items: center;
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+/* Atenuación fluida al perder conexión (solo canciones online) */
+body.is-network-offline .track-row.is-online-only {
+  opacity: 0.35;
+  filter: grayscale(0.7);
+  transition: opacity var(--transition-normal);
+}
+
+body.is-network-offline .track-row.is-online-only:hover {
+  opacity: 0.55;
+}
+
+/* ==========================================================
    VISTA DE ÁLBUMES Y ARTISTAS (GRID VIEW)
    ========================================================== */
 .grid-container {
@@ -1198,3 +1319,764 @@
     display: none;
   }
 }
+
+/* ==========================================================
+   YOUTUBE MUSIC & MUSICVIBE STYLE HOME FEED & MOOD PILLS
+   ========================================================== */
+.home-feed-view {
+  padding: 8px 0 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.home-mood-scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 12px 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.home-mood-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.mood-pill {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+.mood-pill:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-specular);
+  transform: translateY(-1px);
+}
+.mood-pill.active {
+  background: #ffffff;
+  color: #09090b;
+  font-weight: 600;
+  border-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.12);
+}
+
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.home-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-section-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.home-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Selección Rápida (Quick Picks) */
+.quick-picks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.quick-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+.quick-pick-item:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-specular);
+  transform: translateY(-1px);
+}
+
+.quick-pick-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  background: #141418;
+}
+.quick-pick-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.quick-pick-thumb svg {
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.quick-pick-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  color: #ffffff;
+}
+.quick-pick-item:hover .quick-pick-play-btn {
+  opacity: 1;
+}
+
+.quick-pick-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.quick-pick-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-pick-artist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quick-pick-dl-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.quick-pick-dl-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.quick-pick-dl-btn.is-offline {
+  color: #ffffff;
+}
+
+/* Carrusel Horizontal: Tendencias Globales / Top Hits */
+.home-carousel-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.home-carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.home-card {
+  width: 154px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.home-card-cover-wrapper {
+  width: 154px;
+  height: 154px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  background: #141418;
+  border: 1px solid var(--border-hairline);
+}
+.home-card-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 320ms var(--ease-out-expo);
+}
+.home-card:hover .home-card-cover {
+  transform: scale(1.05);
+}
+
+.home-card-floating-play {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #09090b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(8px) scale(0.9);
+  transition: all 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+}
+.home-card:hover .home-card-floating-play {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.home-card-floating-play:hover {
+  transform: translateY(0) scale(1.08) !important;
+}
+
+.home-card-dl-btn {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+.home-card:hover .home-card-dl-btn {
+  opacity: 1;
+}
+.home-card-dl-btn.is-offline {
+  opacity: 1;
+  background: #ffffff;
+  color: #09090b;
+}
+
+.home-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.home-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-card-subtitle {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================
+   TABS DE BIBLIOTECA (Todo, Favoritos, Playlists, Locales)
+   ========================================================== */
+.library-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-hairline);
+  overflow-x: auto;
+}
+.library-tab {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.library-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.library-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--border-specular);
+  font-weight: 600;
+}
+
+/* ==========================================================
+   BÚSQUEDA CATEGORIZADA ESTILO YOUTUBE MUSIC
+   ========================================================== */
+.search-results-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 8px 0 32px 0;
+}
+
+.search-split-top {
+  display: grid;
+  grid-template-columns: 310px 1fr;
+  gap: 24px;
+}
+
+.search-top-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-top-result-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all var(--transition-normal);
+}
+.search-top-result-card:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-specular);
+}
+
+.search-badge-top {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.top-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.top-result-art {
+  width: 130px;
+  height: 130px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #141418;
+}
+.top-result-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.top-result-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.top-result-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.top-result-artist {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-result-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.top-result-play-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #09090b;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+.top-result-play-btn:hover {
+  transform: scale(1.03);
+}
+
+.top-result-dl-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.top-result-dl-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-specular);
+}
+.top-result-dl-btn.is-offline {
+  color: #ffffff;
+}
+
+.search-online-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-online-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-track-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.search-track-row:hover {
+  background: var(--bg-hover);
+}
+
+.search-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.search-row-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  background: #141418;
+}
+.search-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.search-row-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  color: #ffffff;
+  transition: opacity var(--transition-fast);
+}
+.search-track-row:hover .search-row-play-btn {
+  opacity: 1;
+}
+
+.search-row-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.search-row-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-row-artist {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.search-row-album {
+  font-size: 12px;
+  color: var(--text-muted);
+  width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.search-row-fav-btn,
+.search-row-dl-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+.search-row-fav-btn:hover,
+.search-row-dl-btn:hover {
+  color: var(--text-primary);
+}
+.search-row-fav-btn.is-fav {
+  color: #ffffff;
+}
+.search-row-dl-btn.is-offline {
+  color: #ffffff;
+}
+
+.search-row-duration {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  min-width: 36px;
+  text-align: right;
+}
+
+.search-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 0;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ==========================================================
+   PANEL DE LETRAS SINCRONIZADAS (LYRICS PANEL)
+   ========================================================== */
+.lyrics-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: calc(100vh - var(--player-height));
+  background: rgba(10, 10, 13, 0.95);
+  backdrop-filter: blur(28px);
+  border-left: 1px solid var(--border-hairline);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: -12px 0 36px rgba(0, 0, 0, 0.65);
+}
+.lyrics-panel.active {
+  transform: translateX(0);
+}
+
+.lyrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.lyrics-title-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.lyrics-track-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lyrics-track-artist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lyrics-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.lyrics-close-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.lyrics-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px 24px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+
+.lyrics-lines-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 40px 0;
+}
+
+.lyric-line {
+  font-size: 20px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  transition: color 220ms ease, transform 220ms var(--ease-out-expo);
+  user-select: none;
+  transform-origin: left center;
+}
+.lyric-line:hover {
+  color: rgba(255, 255, 255, 0.65);
+}
+.lyric-line.is-active {
+  color: #ffffff !important;
+  transform: scale(1.02);
+  filter: drop-shadow(0 2px 10px rgba(255, 255, 255, 0.2));
+}
+.lyric-line.is-past {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.lyrics-empty-state,
+.lyrics-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+
+.lyrics-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Indicadores en Player Bar */
+#playerDownloadBtn.is-downloaded {
+  color: #ffffff !important;
+}
+#lyricsBtn.active {
+  color: #ffffff !important;
+  background: var(--bg-hover);
+}
+
+/* Responsive Search & Lyrics */
+@media (max-width: 860px) {
+  .search-split-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .lyrics-panel {
+    width: 100%;
+  }
+}
+

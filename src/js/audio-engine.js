@@ -2,6 +2,8 @@
 import { Storage } from './storage.js';
 import { platform } from './core/platform-bridge.js';
 import { AudioGraph, EQ_PRESETS } from './core/audio-graph.js';
+import { offlineManager } from './services/offline-manager.js';
+import { streamingService } from './services/streaming-service.js';
 
 export { EQ_PRESETS };
 
@@ -77,7 +79,6 @@ export class AudioEngine {
     this.queue.splice(this.currentIndex + 1, 0, track);
     this._generateShuffleOrder();
   }
-
   addToQueueEnd(track) {
     if (!track) return;
     if (!this.queue.length) return this.setQueue([track], 0, true);
@@ -110,17 +111,30 @@ export class AudioEngine {
       const j = Math.floor(Math.random() * (i + 1));
       [this.shuffleIndices[i], this.shuffleIndices[j]] = [this.shuffleIndices[j], this.shuffleIndices[i]];
     }
-    this.shufflePointer = this.shuffleIndices.indexOf(this.currentIndex);
-    if (this.shufflePointer === -1) this.shufflePointer = 0;
+    this.shufflePointer = Math.max(0, this.shuffleIndices.indexOf(this.currentIndex));
   }
 
   async playTrackAtIndex(index, autoPlay = true) {
     if (index < 0 || index >= this.queue.length) return;
     this.currentIndex = index;
     const track = this.queue[index];
-    this.audio.src = platform.getAudioStreamUrl(track);
+
+    let audioSrc = '';
+    if (offlineManager.isOffline(track.id)) {
+      audioSrc = await offlineManager.getOfflineAudioUrl(track.id);
+    } else if (track.isOnline) {
+      if (!navigator.onLine) {
+        if (this.onError) this.onError(new Error('offline_no_network'));
+        return;
+      }
+      audioSrc = await streamingService.getAudioStreamUrl(track);
+    }
+    if (!audioSrc) audioSrc = platform.getAudioStreamUrl(track);
+
+    this.audio.src = audioSrc;
     this.audio.load();
     if (this.onTrackChange) this.onTrackChange(track, index);
+    Storage.addToHistory(track);
     if (autoPlay) {
       await this.graph.resume(this.audio);
       this.audio.play().catch(err => console.warn('Autoplay bloqueado:', err));
@@ -133,20 +147,15 @@ export class AudioEngine {
     return this.audio.play();
   }
 
-  pause() {
-    this.audio.pause();
-  }
-
-  togglePlay() {
-    this.audio.paused ? this.play() : this.pause();
-  }
+  pause() { this.audio.pause(); }
+  togglePlay() { this.audio.paused ? this.play() : this.pause(); }
 
   next() {
     if (!this.queue.length) return;
     if (this.isShuffle) {
       this.shufflePointer++;
       if (this.shufflePointer >= this.shuffleIndices.length) {
-        if (this.repeatMode !== 'all') return;
+        if (this.repeatMode !== 'all') { this._checkAutoQueue(); return; }
         this._generateShuffleOrder();
         this.shufflePointer = 0;
       }
@@ -154,7 +163,7 @@ export class AudioEngine {
     } else {
       let nextIndex = this.currentIndex + 1;
       if (nextIndex >= this.queue.length) {
-        if (this.repeatMode !== 'all') return;
+        if (this.repeatMode !== 'all') { this._checkAutoQueue(); return; }
         nextIndex = 0;
       }
       this.playTrackAtIndex(nextIndex, true);
@@ -196,36 +205,42 @@ export class AudioEngine {
   isMuted() { return this.audio.muted; }
   isPlaying() { return !this.audio.paused; }
   getCurrentTrack() { return this.queue[this.currentIndex] || null; }
-
   toggleMute() {
     this.audio.muted = !this.audio.muted;
     this.graph.setVolume(this.audio.volume, this.audio.muted);
     Storage.saveSettings({ isMuted: this.audio.muted });
     return this.audio.muted;
   }
-
   toggleShuffle() {
     this.isShuffle = !this.isShuffle;
     if (this.isShuffle) this._generateShuffleOrder();
     Storage.saveSettings({ isShuffle: this.isShuffle });
     return this.isShuffle;
   }
-
   cycleRepeatMode() {
     const modes = ['none', 'all', 'one'];
     this.repeatMode = modes[(modes.indexOf(this.repeatMode) + 1) % modes.length];
-    Storage.saveSettings({ repeatMode: this.repeatMode });
-    return this.repeatMode;
+    Storage.saveSettings({ repeatMode: this.repeatMode }); return this.repeatMode;
   }
 
   _handleTrackEnded() {
-    if (this.repeatMode === 'one') {
-      this.seekTo(0);
-      this.play();
-    } else {
-      this.next();
-    }
+    if (this.repeatMode === 'one') { this.seekTo(0); this.play(); }
+    else { this.next(); }
     if (this.onTrackEnded) this.onTrackEnded();
+  }
+
+  async _checkAutoQueue() {
+    const cur = this.getCurrentTrack();
+    if (!cur) return;
+    try {
+      const related = await streamingService.getRelatedTracks(cur);
+      if (related?.length > 0) {
+        const nextIdx = this.queue.length;
+        this.queue.push(...related);
+        this._generateShuffleOrder();
+        this.playTrackAtIndex(nextIdx, true);
+      }
+    } catch (e) {}
   }
 
   setBandGain(index, gainDb) { this.graph.setBandGain(index, gainDb); }

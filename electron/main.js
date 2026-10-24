@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, globalShortcut, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, globalShortcut, Notification, session } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs';
@@ -67,6 +67,24 @@ function createWindow() {
 
 // Configuración de protocolo y ciclo de vida de la app
 app.whenReady().then(() => {
+  // Configuración de CORS y cabeceras para streaming sin restricciones (YouTube Music, Piped, Invidious)
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const requestHeaders = details.requestHeaders || {};
+    if (details.url.includes('googlevideo.com') || details.url.includes('piped') || details.url.includes('invidious')) {
+      delete requestHeaders['Origin'];
+      delete requestHeaders['Referer'];
+    }
+    callback({ requestHeaders });
+  });
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const responseHeaders = details.responseHeaders || {};
+    responseHeaders['Access-Control-Allow-Origin'] = ['*'];
+    responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, POST, OPTIONS'];
+    responseHeaders['Access-Control-Allow-Headers'] = ['*'];
+    callback({ responseHeaders });
+  });
+
   // Manejador del protocolo local-audio con soporte nativo de HTTP 206 Range Requests para seek instantáneo
   protocol.handle('local-audio', async (request) => {
     try {
@@ -304,6 +322,64 @@ ipcMain.handle('music:getDefaultMusicDir', () => {
     return app.getPath('music');
   } catch {
     return null;
+  }
+});
+
+// ==========================================
+// Gestor de Descargas Offline en Disco
+// ==========================================
+function getAuraDownloadsDir() {
+  const musicDir = app.getPath('music') || app.getPath('userData');
+  const dir = path.join(musicDir, 'Aura Downloads');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+
+ipcMain.handle('offline:getDownloadsDir', () => {
+  return getAuraDownloadsDir();
+});
+
+ipcMain.handle('offline:saveTrack', async (_event, { fileName, buffer, metadata }) => {
+  try {
+    const dir = getAuraDownloadsDir();
+    const safeName = (fileName || 'track.m4a').replace(/[/\\?%*:|"<>]/g, '_');
+    const targetPath = path.join(dir, safeName);
+    fs.writeFileSync(targetPath, Buffer.from(buffer));
+
+    let track = null;
+    try {
+      track = await extractMetadata(targetPath);
+    } catch {
+      track = {
+        id: Buffer.from(targetPath).toString('base64url'),
+        path: targetPath,
+        fileName: safeName,
+        title: metadata?.title || path.basename(safeName, path.extname(safeName)),
+        artist: metadata?.artist || 'Artista Desconocido',
+        album: metadata?.album || 'Aura Downloads',
+        duration: metadata?.duration || 0,
+        cover: null
+      };
+    }
+    return { success: true, filePath: targetPath, track };
+  } catch (err) {
+    console.error('Error guardando pista offline:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('offline:deleteTrack', async (_event, filePath) => {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error('Error eliminando pista offline:', err);
+    return false;
   }
 });
 

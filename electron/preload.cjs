@@ -33,5 +33,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Generador de URL de streaming local seguro
   getAudioStreamUrl: (filePath) => {
     return `local-audio://stream?path=${encodeURIComponent(filePath)}`;
-  }
+  },
+
+  // Descargas offline en disco
+  saveDownloadedTrack: (data) => ipcRenderer.invoke('offline:saveTrack', data),
+  getDownloadsDir: () => ipcRenderer.invoke('offline:getDownloadsDir'),
+  deleteDownloadedTrack: (filePath) => ipcRenderer.invoke('offline:deleteTrack', filePath)
 });

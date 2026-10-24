@@ -6,7 +6,8 @@ const STORAGE_KEYS = {
   FOLDERS: 'spoty_folders',
   FAVORITES: 'spoty_favorites',
   PLAYLISTS: 'spoty_playlists',
-  SETTINGS: 'spoty_settings'
+  SETTINGS: 'spoty_settings',
+  HISTORY: 'spoty_history'
 };
 
 const DEFAULT_SETTINGS = {
@@ -161,5 +162,36 @@ export const Storage = {
       return true;
     }
     return false;
+  },
+
+  // Historial de reproducción reciente (Volver a escuchar)
+  getHistory() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  addToHistory(track) {
+    if (!track || !track.title) return;
+    const history = this.getHistory().filter(t => t.id !== track.id);
+    history.unshift({
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      album: track.album || '',
+      duration: track.duration || 0,
+      cover: track.cover || null,
+      path: track.path || '',
+      isOnline: !!track.isOnline,
+      isOffline: !!track.isOffline
+    });
+    try {
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history.slice(0, 30)));
+    } catch (e) {
+      console.warn('Error guardando historial:', e);
+    }
   }
 };

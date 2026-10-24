@@ -55,8 +55,8 @@ class MemoryManager {
   /**
    * Limpia datos redundantes o imágenes Base64 masivas antes de persistir en LocalStorage
    * para no exceder cuotas de memoria ni saturar el Garbage Collector
-   * @param {Array<object>} tracks 
-   * @returns {Array<object>} Tracks saneados
+   * @param {Array<any>} tracks 
+   * @returns {Array<any>} Tracks saneados
    */
   sanitizeTracksForStorage(tracks) {
     if (!Array.isArray(tracks)) return [];

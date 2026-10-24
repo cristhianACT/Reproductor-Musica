@@ -1,5 +1,6 @@
 // Centralización del Estado Global de Aura Music Player con patrón Pub/Sub
 import { Storage } from '../storage.js';
+import { offlineManager } from '../services/offline-manager.js';
 
 class AppState extends EventTarget {
   constructor() {
@@ -7,10 +8,14 @@ class AppState extends EventTarget {
 
     // Estado interno
     this._allTracks = [];
+    this._onlineTracks = [];
     this._displayedTracks = [];
-    this._currentView = 'library'; // 'library' | 'favorites' | 'albums' | 'artists' | 'album:<name>' | 'artist:<name>' | 'playlist:<id>'
+    this._currentView = 'home'; // 'home' | 'explore' | 'library' | 'offline' | 'favorites' | 'albums' | 'artists'
+    this._libraryTab = 'all'; // 'all' | 'favorites' | 'playlists' | 'local'
     this._searchQuery = '';
+    this._searchMode = 'local'; // 'local' | 'online'
     this._sortMode = 'title'; // 'title' | 'artist' | 'album' | 'duration'
+    this._isNetworkOffline = typeof navigator !== 'undefined' ? !navigator.onLine : false;
 
     // Estados de interacción
     this.isDraggingProgress = false;
@@ -39,6 +44,18 @@ class AppState extends EventTarget {
     return this._allTracks;
   }
 
+  get onlineTracks() {
+    return this._onlineTracks;
+  }
+
+  get searchMode() {
+    return this._searchMode;
+  }
+
+  get isNetworkOffline() {
+    return this._isNetworkOffline;
+  }
+
   get displayedTracks() {
     return this._displayedTracks;
   }
@@ -55,6 +72,16 @@ class AppState extends EventTarget {
     return this._sortMode;
   }
 
+  get libraryTab() {
+    return this._libraryTab;
+  }
+
+  setLibraryTab(tab) {
+    this._libraryTab = tab;
+    this.updateDisplayedTracks();
+    this.emit('librarytab:changed', this._libraryTab);
+  }
+
   // Setters y actualizadores con notificación
   setAllTracks(tracks) {
     this._allTracks = Array.isArray(tracks) ? tracks : [];
@@ -65,11 +92,9 @@ class AppState extends EventTarget {
   mergeTracks(newTracks) {
     if (!newTracks || newTracks.length === 0) return;
     const existingMap = new Map(this._allTracks.map(t => [t.path, t]));
-
     for (const track of newTracks) {
       existingMap.set(track.path, track);
     }
-
     this._allTracks = Array.from(existingMap.values());
     Storage.saveTracksCache(this._allTracks);
     this.updateDisplayedTracks();
@@ -100,14 +125,45 @@ class AppState extends EventTarget {
     this.emit('sort:changed', this._sortMode);
   }
 
+  setOnlineTracks(tracks) {
+    this._onlineTracks = Array.isArray(tracks) ? tracks : [];
+    if (this._currentView === 'explore' || this._searchMode === 'online') {
+      this.updateDisplayedTracks();
+    }
+    this.emit('tracks:updated', this._displayedTracks);
+  }
+
+  setSearchMode(mode) {
+    this._searchMode = mode;
+    this.emit('searchmode:changed', this._searchMode);
+  }
+
+  setNetworkOffline(isOffline) {
+    this._isNetworkOffline = !!isOffline;
+    this.emit('network:changed', { isOffline: this._isNetworkOffline });
+  }
+
   /**
    * Recalcula la lista de pistas a desplegar según la vista activa
    */
   updateDisplayedTracks() {
     let baseTracks = [];
 
-    if (this._currentView === 'library') {
-      baseTracks = [...this._allTracks];
+    if (this._currentView === 'home') {
+      baseTracks = [];
+    } else if (this._currentView === 'library') {
+      if (this._libraryTab === 'favorites') {
+        const favs = Storage.getFavorites();
+        baseTracks = this._allTracks.filter(t => favs.has(t.id));
+      } else if (this._libraryTab === 'local') {
+        baseTracks = this._allTracks.filter(t => !t.isOnline);
+      } else {
+        baseTracks = [...this._allTracks];
+      }
+    } else if (this._currentView === 'explore') {
+      baseTracks = [...this._onlineTracks];
+    } else if (this._currentView === 'offline') {
+      baseTracks = offlineManager.getAllOfflineTracks();
     } else if (this._currentView === 'favorites') {
       const favs = Storage.getFavorites();
       baseTracks = this._allTracks.filter(t => favs.has(t.id));
@@ -125,7 +181,6 @@ class AppState extends EventTarget {
         baseTracks = this._allTracks.filter(t => trackIds.has(t.id));
       }
     } else {
-      // 'albums' o 'artists' usan renderizado de cuadrícula, baseTracks puede ser allTracks
       baseTracks = [...this._allTracks];
     }
 

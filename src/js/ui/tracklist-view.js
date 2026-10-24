@@ -2,6 +2,7 @@
 import { DOM } from './dom-elements.js';
 import { formatTime, escapeHtml } from '../utils/formatters.js';
 import { Storage } from '../storage.js';
+import { offlineManager } from '../services/offline-manager.js';
 export { renderAlbumsGrid, renderArtistsGrid } from './grid-view.js';
 
 const ROW_HEIGHT = 48;
@@ -16,12 +17,22 @@ let _currentTableState = {
   handlers: /** @type {any} */ (null)
 };
 
-export function renderHeroBanner(currentView, allTracks) {
-  const { heroTitle, heroTag, heroCover } = DOM.content;
+export function renderHeroBanner(currentView, allTracks, extraMeta) {
+  const { heroTitle, heroTag, heroCover, heroMeta } = DOM.content;
+  if (heroMeta && extraMeta) heroMeta.textContent = extraMeta;
   if (currentView === 'library') {
     if (heroTag) heroTag.textContent = 'Colección';
     if (heroTitle) heroTitle.textContent = 'Tu Biblioteca';
     if (heroCover) heroCover.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>`;
+  } else if (currentView === 'explore') {
+    if (heroTag) heroTag.textContent = 'Streaming Global';
+    if (heroTitle) heroTitle.textContent = 'Explorar Música Online';
+    if (heroCover) heroCover.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+  } else if (currentView === 'offline') {
+    if (heroTag) heroTag.textContent = 'Sin Conexión';
+    if (heroTitle) heroTitle.textContent = 'Descargas Offline';
+    if (heroMeta) heroMeta.textContent = `${offlineManager.getAllOfflineTracks().length} canciones · ${offlineManager.getTotalStorageUsage()}`;
+    if (heroCover) heroCover.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
   } else if (currentView === 'favorites') {
     if (heroTag) heroTag.textContent = 'Lista';
     if (heroTitle) heroTitle.textContent = 'Tus Favoritos';
@@ -59,10 +70,14 @@ export function renderHeroBanner(currentView, allTracks) {
 function _renderTrackRowHtml(track, idx, currentTrack, isPlaying, favs) {
   const isThisTrack = currentTrack && currentTrack.id === track.id;
   const isFav = favs.has(track.id);
+  const isOff = track.isOffline || offlineManager.isOffline(track.id);
+  const isOnlineOnly = track.isOnline && !isOff;
+  const isDownloading = !!track.isDownloading;
+  const dlPercent = track.downloadPercent || 0;
   const coverHtml = track.cover ? `<img src="${track.cover}" alt="Cover">` : `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>`;
 
   return `
-    <tr class="track-row ${isThisTrack ? 'active' : ''} ${isThisTrack && isPlaying ? 'is-playing' : ''}" data-track-id="${track.id}" data-index="${idx}">
+    <tr class="track-row ${isThisTrack ? 'active' : ''} ${isThisTrack && isPlaying ? 'is-playing' : ''} ${isOnlineOnly ? 'is-online-only' : ''}" data-track-id="${track.id}" data-index="${idx}">
       <td class="col-num-cell">
         <span class="track-index">${idx + 1}</span>
         <span class="track-play-icon">
@@ -77,13 +92,30 @@ function _renderTrackRowHtml(track, idx, currentTrack, isPlaying, favs) {
           <div class="track-thumb">${coverHtml}</div>
           <div class="track-meta-wrap">
             <span class="track-title" title="${escapeHtml(track.title)}">${escapeHtml(track.title)}</span>
-            <span class="track-artist" title="${escapeHtml(track.artist)}">${escapeHtml(track.artist)}</span>
+            <div class="track-artist-row">
+              <span class="track-artist" title="${escapeHtml(track.artist)}">${escapeHtml(track.artist)}</span>
+              ${isOff ? `<span class="badge-offline">OFFLINE</span>` : ''}
+              ${isOnlineOnly ? `<span class="badge-online">ONLINE</span>` : ''}
+            </div>
           </div>
         </div>
       </td>
       <td class="track-album" title="${escapeHtml(track.album)}">${escapeHtml(track.album)}</td>
       <td class="track-duration">${formatTime(track.duration)}</td>
       <td class="track-actions-cell">
+        ${(track.isOnline || isOff) ? `
+          <button class="download-btn ${isOff ? 'is-downloaded' : ''} ${isDownloading ? 'is-downloading' : ''}" 
+                  data-action="download" 
+                  title="${isOff ? 'Disponible offline' : (isDownloading ? `Descargando (${dlPercent}%)` : 'Descargar para escuchar offline')}">
+            ${isOff ? `
+              <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            ` : (isDownloading ? `
+              <div class="download-spinner" title="Descargando ${dlPercent}%"></div>
+            ` : `
+              <svg class="dl-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            `)}
+          </button>
+        ` : ''}
         <button class="heart-btn ${isFav ? 'is-fav' : ''}" data-action="favorite" title="${isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
         </button>
@@ -112,6 +144,10 @@ function _initEventDelegationOnce(tbody) {
     if (e.target.closest('.track-play-icon')) {
       e.stopPropagation();
       handlers.onPlayClick?.(tracks, idx, trackId);
+    // @ts-ignore
+    } else if (e.target.closest('[data-action="download"]')) {
+      e.stopPropagation();
+      handlers.onDownloadClick?.(tracks[idx], idx);
     // @ts-ignore
     } else if (e.target.closest('[data-action="favorite"]')) {
       e.stopPropagation();
