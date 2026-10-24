@@ -233,8 +233,8 @@ ipcMain.handle('window:toggleMiniPlayer', () => {
 
   if (isMiniPlayer) {
     normalBounds = mainWindow.getBounds();
-    mainWindow.setMinimumSize(340, 160);
-    mainWindow.setSize(380, 180);
+    mainWindow.setMinimumSize(320, 160);
+    mainWindow.setSize(380, 185);
     mainWindow.setAlwaysOnTop(true, 'floating');
     mainWindow.setResizable(false);
   } else {

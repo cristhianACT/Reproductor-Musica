@@ -118,10 +118,10 @@ export class AudioVisualizer {
     const barWidth = Math.max(3, (width - totalSpacing) / barCount);
 
     const gradient = this.ctx.createLinearGradient(0, height, 0, 0);
-    gradient.addColorStop(0, 'rgba(0, 242, 254, 0.15)');
-    gradient.addColorStop(0.5, 'rgba(0, 242, 254, 0.75)');
-    gradient.addColorStop(0.85, 'rgba(127, 0, 255, 0.85)');
-    gradient.addColorStop(1, '#00f2fe');
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.45)');
+    gradient.addColorStop(0.85, 'rgba(255, 255, 255, 0.85)');
+    gradient.addColorStop(1, '#ffffff');
 
     this.ctx.fillStyle = gradient;
 

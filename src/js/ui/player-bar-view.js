@@ -141,4 +141,14 @@ export function updateWindowState({ isMaximized, isMini }) {
       ? `<rect x="6" y="6" width="12" height="12" rx="1" fill="none" stroke-width="2"/><path d="M9 4h7a2 2 0 0 1 2 2v7" fill="none" stroke-width="2"/>`
       : `<rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke-width="2"/>`;
   }
+  const miniBtn = DOM.titlebar.miniPlayerBtn;
+  if (miniBtn) {
+    if (isMini) {
+      miniBtn.title = 'Restaurar reproductor (M)';
+      miniBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+    } else {
+      miniBtn.title = 'Modo Mini-Player flotante (M)';
+      miniBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="11" y="11" width="8" height="8" rx="1"/></svg>`;
+    }
+  }
 }

@@ -142,10 +142,25 @@ export class PlayerController {
     DOM.mobileSheet.favBtn?.addEventListener('click', favAction);
 
     DOM.player.nowPlayingArt?.addEventListener('click', () => {
-      if (window.innerWidth <= 768) toggleMobileSheet(true);
+      if (document.body.classList.contains('mini-mode')) {
+        const c = this.audioEngine.getCurrentTrack();
+        if (c) platform.showItemInFolder(c.path);
+        return;
+      }
+      if (window.innerWidth <= 768 && !platform.isElectron) toggleMobileSheet(true);
       else { const c = this.audioEngine.getCurrentTrack(); if (c) platform.showItemInFolder(c.path); }
     });
-    DOM.player.nowPlayingTitle?.addEventListener('click', () => { if (window.innerWidth <= 768) toggleMobileSheet(true); });
+    DOM.player.nowPlayingTitle?.addEventListener('click', () => {
+      if (document.body.classList.contains('mini-mode')) return;
+      if (window.innerWidth <= 768 && !platform.isElectron) toggleMobileSheet(true);
+    });
+    DOM.player.bar?.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const step = e.deltaY < 0 ? 0.05 : -0.05;
+      const newVol = Math.max(0, Math.min(1, this.audioEngine.getVolume() + step));
+      this.audioEngine.setVolume(newVol);
+      updateVolumeUI(newVol);
+    }, { passive: false });
     DOM.mobileSheet.closeBtn?.addEventListener('click', () => toggleMobileSheet(false));
     DOM.mobileSheet.playPauseBtn?.addEventListener('click', () => this.audioEngine.togglePlay());
     DOM.mobileSheet.prevBtn?.addEventListener('click', () => this.audioEngine.prev());

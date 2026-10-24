@@ -122,6 +122,11 @@ export class LibraryController {
     DOM.content.emptyAddFilesBtn?.addEventListener('click', addFiles);
     DOM.sidebar.scanDefaultMusicBtn?.addEventListener('click', scanDefault);
     DOM.content.emptyScanBtn?.addEventListener('click', scanDefault);
+
+    document.getElementById('quickCardFav')?.addEventListener('click', () => this.state.setView('favorites'));
+    document.getElementById('quickCardAlbums')?.addEventListener('click', () => this.state.setView('albums'));
+    document.getElementById('quickCardArtists')?.addEventListener('click', () => this.state.setView('artists'));
+    document.getElementById('quickCardFolder')?.addEventListener('click', addFolder);
   }
 
   // Comprobación de música inicial si la caché está vacía
@@ -174,7 +179,9 @@ export class LibraryController {
     const table = DOM.content.trackTable;
     const grid = DOM.content.gridView;
 
+    const quickGrid = document.getElementById('libraryQuickGrid');
     if (currentView === 'albums') {
+      if (quickGrid) quickGrid.style.display = 'none';
       renderHeroBanner(currentView, this.state.allTracks);
       renderAlbumsGrid(
         this.state.allTracks,
@@ -185,6 +192,7 @@ export class LibraryController {
     }
 
     if (currentView === 'artists') {
+      if (quickGrid) quickGrid.style.display = 'none';
       renderHeroBanner(currentView, this.state.allTracks);
       renderArtistsGrid(
         this.state.allTracks,
@@ -196,7 +204,10 @@ export class LibraryController {
 
     // Vista en tabla (library, favorites, album:<name>, artist:<name>, playlist:<id>)
     if (grid) grid.style.display = 'none';
-    if (table) table.style.display = 'table';
+    if (table) table.style.display = '';
+    if (quickGrid) {
+      quickGrid.style.display = (currentView === 'library' && !this.state.searchQuery) ? '' : 'none';
+    }
 
     renderHeroBanner(currentView, this.state.allTracks);
 

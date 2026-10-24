@@ -4,7 +4,7 @@ import { formatTime, escapeHtml } from '../utils/formatters.js';
 import { Storage } from '../storage.js';
 export { renderAlbumsGrid, renderArtistsGrid } from './grid-view.js';
 
-const ROW_HEIGHT = 56;
+const ROW_HEIGHT = 48;
 const VIRTUAL_THRESHOLD = 80;
 let _virtualScrollBound = false;
 let _scrollRafId = null;
@@ -177,7 +177,7 @@ export function renderTrackTable(tracks, currentTrack, isPlaying, searchQuery, h
     return;
   }
 
-  if (table) table.style.display = 'table';
+  if (table) table.style.display = '';
   if (emptyState) emptyState.style.display = 'none';
 
   _currentTableState = { tracks, currentTrack, isPlaying, handlers };
