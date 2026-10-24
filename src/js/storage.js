@@ -1,3 +1,5 @@
+import { memoryManager } from './core/memory-manager.js';
+
 // Gestión de persistencia local (LocalStorage)
 const STORAGE_KEYS = {
   TRACKS_CACHE: 'spoty_tracks_cache',
@@ -13,7 +15,8 @@ const DEFAULT_SETTINGS = {
   isShuffle: false,
   repeatMode: 'none', // 'none' | 'all' | 'one'
   eqPreset: 'flat',
-  eqBands: [0, 0, 0, 0, 0] // 60Hz, 250Hz, 1kHz, 4kHz, 14kHz en dB
+  eqBands: [0, 0, 0, 0, 0], // 60Hz, 250Hz, 1kHz, 4kHz, 14kHz en dB
+  lowSpecMode: 'auto'
 };
 
 export const Storage = {
@@ -48,7 +51,8 @@ export const Storage = {
 
   saveTracksCache(tracks) {
     try {
-      localStorage.setItem(STORAGE_KEYS.TRACKS_CACHE, JSON.stringify(tracks));
+      const sanitized = memoryManager.sanitizeTracksForStorage(tracks);
+      localStorage.setItem(STORAGE_KEYS.TRACKS_CACHE, JSON.stringify(sanitized));
     } catch (e) {
       console.warn('No se pudo guardar la caché de pistas en localStorage (posible límite de cuota):', e);
     }

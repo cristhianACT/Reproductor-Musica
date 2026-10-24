@@ -9,7 +9,10 @@
     "start": "electron .",
     "dev": "electron .",
     "build": "electron-builder --win portable && node scripts/post-build.js",
-    "build:portable": "electron-builder --win portable && node scripts/post-build.js"
+    "build:portable": "electron-builder --win portable && node scripts/post-build.js",
+    "mobile:sync": "npx cap sync android",
+    "mobile:open": "npx cap open android",
+    "mobile:apk": "npx cap sync android && cd android && ./gradlew assembleDebug"
   },
   "build": {
     "appId": "com.aura.musicplayer",
@@ -37,11 +40,15 @@
     }
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
     "electron": "^44.2.0",
     "electron-builder": "^26.7.0",
     "vite": "^8.2.2"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
     "music-metadata": "^11.15.0"
   }
 }

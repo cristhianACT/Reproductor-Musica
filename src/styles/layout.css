@@ -733,3 +733,219 @@ body.mini-mode .player-center {
 body.mini-mode .player-right {
   display: none;
 }
+
+/* ==========================================================
+   MODO DE BAJO CONSUMO (LOW-SPEC MODE)
+   ========================================================== */
+body.low-spec-mode .aura-ambient-glow {
+  display: none !important;
+}
+
+body.low-spec-mode .titlebar,
+body.low-spec-mode .player-bar,
+body.low-spec-mode .content-topbar,
+body.low-spec-mode .mobile-bottom-nav {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: #0c0e14 !important;
+}
+
+body.low-spec-mode .grid-card,
+body.low-spec-mode .modal-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+body.low-spec-mode .titlebar-logo-icon,
+body.low-spec-mode .tool-btn.active,
+body.low-spec-mode .play-all-btn {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+body.low-spec-mode .track-row:hover {
+  background: var(--bg-surface) !important;
+}
+
+/* ==========================================================
+   BARRA DE NAVEGACIÓN INFERIOR Y DISEÑO MÓVIL (MOBILE-FIRST)
+   ========================================================== */
+.mobile-bottom-nav {
+  display: none;
+}
+
+body.is-mobile-platform #miniPlayerBtn,
+body.is-mobile-platform #minBtn,
+body.is-mobile-platform #maxBtn,
+body.is-mobile-platform #closeBtn {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  /* Ocultar barra lateral pesada en pantallas táctiles compactas */
+  .sidebar {
+    display: none !important;
+  }
+
+  .titlebar-center-title {
+    display: none !important;
+  }
+
+  /* Ocultar controles de ventana de escritorio en móvil y conservar únicamente el modo de bajo consumo */
+  #miniPlayerBtn,
+  #minBtn,
+  #maxBtn,
+  #closeBtn {
+    display: none !important;
+  }
+
+  #lowSpecToggleBtn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+  }
+
+  #lowSpecToggleBtn.active {
+    color: #ffd32a;
+    background: rgba(255, 211, 42, 0.15);
+  }
+
+  #lowSpecToggleBtn.active svg {
+    fill: #ffd32a;
+  }
+
+  /* Ajustar topbar en móvil */
+  .content-topbar {
+    padding: 10px 12px;
+    flex-direction: column;
+    gap: 8px;
+    height: auto;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: space-between;
+    overflow-x: auto;
+  }
+
+  /* Contenido scrollable con padding inferior para player y nav */
+  .content-scrollable {
+    padding: 12px 12px 140px 12px;
+  }
+
+  /* Tabla de canciones compacta */
+  .col-album,
+  .col-duration {
+    display: none;
+  }
+
+  .track-table th,
+  .track-table td {
+    padding: 8px 6px;
+  }
+
+  /* Barra de reproducción adaptada a pantalla táctil */
+  .player-bar {
+    position: fixed;
+    bottom: 58px;
+    left: 0;
+    right: 0;
+    height: 64px;
+    grid-template-columns: 1fr auto;
+    padding: 0 12px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .playback-bar,
+  .player-right {
+    display: none !important;
+  }
+
+  .player-left {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .now-playing-art {
+    width: 44px;
+    height: 44px;
+  }
+
+  .player-center {
+    width: auto;
+  }
+
+  .player-controls {
+    gap: 6px;
+  }
+
+  /* Controles con área táctil accesible de 44x44px */
+  .control-btn,
+  .play-pause-btn,
+  .pill-btn,
+  .heart-btn,
+  .more-btn,
+  .titlebar-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  /* Barra de navegación inferior móvil */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 58px;
+    background: rgba(11, 13, 18, 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-subtle);
+    z-index: 1050;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-bottom-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-subdued);
+    min-width: 44px;
+    min-height: 44px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast);
+    touch-action: manipulation;
+  }
+
+  .mobile-bottom-nav .nav-item svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+
+  .mobile-bottom-nav .nav-item.active {
+    color: var(--accent-cyan);
+  }
+}

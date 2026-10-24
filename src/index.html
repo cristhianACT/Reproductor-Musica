@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' local-audio: blob: data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; media-src 'self' local-audio: blob: data:; img-src 'self' data: blob: local-audio:;">
   <title>AURA - Reproductor de Música</title>
   <link rel="stylesheet" href="./styles/variables.css">
@@ -27,6 +27,9 @@
     <div class="titlebar-center-title" id="titlebarTrackTitle">Aura Desktop Audio</div>
 
     <div class="titlebar-controls">
+      <button id="lowSpecToggleBtn" class="titlebar-btn" title="Modo Bajo Consumo (Ahorro GPU/Batería)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </button>
       <button id="miniPlayerBtn" class="titlebar-btn mini-btn" title="Modo Mini-Player flotante">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="11" y="11" width="8" height="8" rx="1"/></svg>
       </button>
@@ -298,9 +301,27 @@
           <div class="slider-thumb" id="volumeBarThumb" style="left: 80%;"></div>
         </div>
       </div>
-    </div>
-
   </footer>
+
+  <!-- BARRA DE NAVEGACIÓN INFERIOR MÓVIL (BOTTOM NAV) -->
+  <nav class="mobile-bottom-nav">
+    <div class="nav-item active" data-view="library">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Biblioteca</span>
+    </div>
+    <div class="nav-item" data-view="favorites">
+      <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <span>Favoritos</span>
+    </div>
+    <div class="nav-item" data-view="albums">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>
+      <span>Álbumes</span>
+    </div>
+    <div class="nav-item" data-view="artists">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <span>Artistas</span>
+    </div>
+  </nav>
 
   <!-- MENÚ CONTEXTUAL NATIVO (RIGHT-CLICK) -->
   <div class="custom-context-menu" id="contextMenu">
@@ -411,6 +432,65 @@
       </div>
       <div id="targetPlaylistsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto;">
         <!-- Inyectado por JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EXPANDIBLE MÓVIL: FULL-SCREEN NOW PLAYING -->
+  <div class="mobile-now-playing-sheet" id="mobileNowPlayingSheet">
+    <div class="sheet-header">
+      <button id="closeSheetBtn" class="sheet-collapse-btn" title="Minimizar">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+      </button>
+      <span class="sheet-header-title">Reproduciendo ahora</span>
+      <button id="sheetFavBtn" class="heart-btn" title="Favorito">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </button>
+    </div>
+
+    <div class="sheet-body">
+      <div class="sheet-art-wrap">
+        <div class="sheet-art" id="sheetArt">
+          <div class="default-art">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-track-info">
+        <h2 class="sheet-title" id="sheetTitle">Ninguna canción</h2>
+        <p class="sheet-artist" id="sheetArtist">Selecciona música para reproducir</p>
+      </div>
+
+      <div class="sheet-progress-wrap">
+        <div class="slider-container" id="sheetProgressBarContainer">
+          <div class="slider-track">
+            <div class="slider-fill" id="sheetProgressBarFill"></div>
+          </div>
+          <div class="slider-thumb" id="sheetProgressBarThumb"></div>
+        </div>
+        <div class="sheet-time-row">
+          <span class="time-label" id="sheetCurrentTimeLabel">0:00</span>
+          <span class="time-label" id="sheetTotalTimeLabel">0:00</span>
+        </div>
+      </div>
+
+      <div class="sheet-controls">
+        <button id="sheetShuffleBtn" class="control-btn" title="Aleatorio">
+          <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+        </button>
+        <button id="sheetPrevBtn" class="control-btn" title="Anterior">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button id="sheetPlayPauseBtn" class="play-pause-btn sheet-main-play" title="Reproducir / Pausa">
+          <svg id="sheetPlayPauseIcon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <button id="sheetNextBtn" class="control-btn" title="Siguiente">
+          <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+        <button id="sheetRepeatBtn" class="control-btn" title="Repetir">
+          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+        </button>
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 dist/
 out/
 release/
@@ -6,3 +6,4 @@ build/
 *.exe
 *.env
 .DS_Store
+android/
