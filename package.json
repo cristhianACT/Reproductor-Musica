@@ -1,0 +1,47 @@
+{
+  "name": "aura-music-player",
+  "version": "1.0.0",
+  "description": "AURA - Reproductor de Música de Alta Fidelidad para Escritorio",
+  "main": "electron/main.js",
+  "type": "module",
+  "author": "Aura Audio",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder --win portable && node scripts/post-build.js",
+    "build:portable": "electron-builder --win portable && node scripts/post-build.js"
+  },
+  "build": {
+    "appId": "com.aura.musicplayer",
+    "productName": "Aura Music Player",
+    "directories": {
+      "output": "C:/Users/crist/.aura-dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "sample_music/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.7.0",
+    "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "music-metadata": "^11.15.0"
+  }
+}

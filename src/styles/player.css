@@ -1,0 +1,364 @@
+/* ==========================================================
+   BARRA DE REPRODUCCIÓN INFERIOR (AURA NOW PLAYING BAR)
+   ========================================================== */
+.player-bar {
+  height: var(--player-height);
+  background-color: rgba(11, 13, 18, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: 28% 44% 28%;
+  align-items: center;
+  padding: 0 20px;
+  position: relative;
+  z-index: 1000;
+  box-shadow: var(--shadow-player);
+}
+
+/* ==========================================================
+   COLUMNA IZQUIERDA: PISTA ACTUAL
+   ========================================================== */
+.player-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.now-playing-art {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-md);
+  background: var(--gradient-card);
+  border: 1px solid var(--border-subtle);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.now-playing-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.now-playing-art .default-art {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-subdued);
+}
+
+.now-playing-art .default-art svg {
+  width: 26px;
+  height: 26px;
+}
+
+.now-playing-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: center;
+  gap: 3px;
+}
+
+.now-playing-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.now-playing-title:hover {
+  color: var(--accent-cyan);
+}
+
+.now-playing-artist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.now-playing-artist:hover {
+  color: var(--text-primary);
+}
+
+.player-left .heart-btn {
+  opacity: 1;
+}
+
+/* ==========================================================
+   COLUMNA CENTRAL: CONTROLES Y BARRA DE PROGRESO
+   ========================================================== */
+.player-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  gap: 8px;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.control-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.control-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.control-btn:hover {
+  color: var(--text-primary);
+  transform: scale(1.08);
+}
+
+.control-btn.active {
+  color: var(--accent-cyan);
+}
+
+.control-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-color: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.control-btn.repeat-btn.repeat-one::before {
+  content: '1';
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+/* Botón Play/Pause con Aura */
+.play-pause-btn {
+  width: 42px;
+  height: 42px;
+  background: var(--gradient-aura);
+  color: var(--text-inverse);
+  border-radius: var(--radius-full);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(0, 242, 254, 0.4);
+}
+
+.play-pause-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 22px rgba(0, 242, 254, 0.6);
+}
+
+.play-pause-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* Barra de progreso interactiva */
+.playback-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+}
+
+.time-label {
+  font-size: 11px;
+  color: var(--text-subdued);
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.slider-container {
+  flex: 1;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.slider-track {
+  width: 100%;
+  height: 4px;
+  background-color: var(--slider-bg);
+  border-radius: var(--radius-full);
+  position: relative;
+  overflow: hidden;
+  transition: height var(--transition-fast);
+}
+
+.slider-container:hover .slider-track {
+  height: 6px;
+}
+
+.slider-fill {
+  height: 100%;
+  background: var(--gradient-aura);
+  border-radius: var(--radius-full);
+  width: 0%;
+  pointer-events: none;
+}
+
+.slider-thumb {
+  width: 12px;
+  height: 12px;
+  background-color: #ffffff;
+  border-radius: var(--radius-full);
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
+  transition: opacity var(--transition-fast);
+}
+
+.slider-container:hover .slider-thumb {
+  opacity: 1;
+}
+
+/* ==========================================================
+   COLUMNA DERECHA: COLA, VISUALIZADOR, EQ Y VOLUMEN
+   ========================================================== */
+.player-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.tool-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+.tool-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.tool-btn:hover {
+  color: var(--text-primary);
+  transform: scale(1.08);
+}
+
+.tool-btn.active {
+  color: var(--accent-cyan);
+  filter: drop-shadow(0 0 6px rgba(0, 242, 254, 0.6));
+}
+
+.volume-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 120px;
+}
+
+.volume-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.volume-btn:hover {
+  color: var(--text-primary);
+}
+
+.volume-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* ==========================================================
+   VISUALIZADOR EN TIEMPO REAL
+   ========================================================== */
+.visualizer-overlay {
+  position: absolute;
+  bottom: var(--player-height);
+  left: 0;
+  right: 0;
+  height: 160px;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity var(--transition-smooth);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 40px 10px 40px;
+}
+
+.visualizer-overlay.active {
+  opacity: 0.95;
+}
+
+#audioVisualizerCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
