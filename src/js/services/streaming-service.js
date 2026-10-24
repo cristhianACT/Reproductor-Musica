@@ -1,18 +1,20 @@
-// @ts-check
-// Servicio de Catálogo, Home Feed, Streaming y Radio Infinita (<250 líneas)
-const PIPED = ['https://pipedapi.kavin.rocks', 'https://api.piped.privacydev.net', 'https://pipedapi.leptons.xyz', 'https://piped-api.lunar.icu'];
-const INVID = ['https://yt.chocolatemoo53.com', 'https://invidious.materialio.us', 'https://yewtu.be', 'https://invidious.slipfox.xyz'];
+// Servicio de Catálogo Comercial (iTunes + Audius) y Extractor de Audio Libre (<250 líneas)
+import { platform } from '../core/platform-bridge.js';
+
 const ITUNES_SEARCH = 'https://itunes.apple.com/search';
-const TIMEOUT_MS = 3200;
+const ITUNES_CHARTS = 'https://itunes.apple.com/us/rss/topsongs/limit=25/json';
+const AUDIUS_TRENDING = 'https://discoveryprovider.audius.co/v1/tracks/trending?app_name=AuraMusicPlayer&limit=15';
+const INVIDIOUS_HOSTS = ['https://yt.chocolatemoo53.com', 'https://inv.nadeko.net', 'https://invidious.tiekoetter.com'];
+const TIMEOUT_MS = 2500;
 
 const MOODS = {
   'Todo': 'Top Hits Worldwide',
-  'Energía': 'Electronic Dance Pop',
-  'Relax': 'Lofi Chill Acoustic',
-  'Concentración': 'Ambient Synthwave Focus',
-  'Entrenamiento': 'Workout Phonk Trap',
-  'Romance': 'Love Songs R&B Indie',
-  'Fiesta': 'Latin Pop Reggaeton EDM'
+  'Energía': 'Electronic Dance Party Hits',
+  'Relax': 'Acoustic Lo-Fi Chill',
+  'Concentración': 'Ambient Study Piano Focus',
+  'Entrenamiento': 'Workout Fitness Energy Motivation',
+  'Romance': 'Romantic Love Songs Ballads',
+  'Fiesta': 'Latin Pop Reggaeton Hits'
 };
 
 class StreamingService {
@@ -20,25 +22,72 @@ class StreamingService {
     this._searchCache = new Map();
     this._streamCache = new Map();
     this._homeCache = new Map();
-    this._pIdx = 0;
-    this._iIdx = 0;
+    this._hostIdx = 0;
   }
 
   async getHomeFeed(mood = 'Todo') {
     const key = mood.toLowerCase();
     if (this._homeCache.has(key)) return this._homeCache.get(key);
-    const query = MOODS[mood] || MOODS['Todo'];
-    const tracks = await this.searchGlobalTracks(query);
-    const quickPicks = tracks.slice(0, 6);
-    const trendingHits = tracks.slice(6, 18);
-    const feed = { mood, quickPicks, trendingHits };
+
+    let tracks = [];
+    if (mood === 'Todo') {
+      tracks = await this._getChartsFeed();
+      if (!tracks.length) tracks = await this.searchGlobalTracks(MOODS['Todo']);
+    } else {
+      tracks = await this.searchGlobalTracks(MOODS[mood] || MOODS['Todo']);
+    }
+
+    const feed = { mood, quickPicks: tracks.slice(0, 6), trendingHits: tracks.slice(6, 20) };
     this._homeCache.set(key, feed);
     return feed;
   }
 
+  async _getChartsFeed() {
+    try {
+      const res = await this._fetch(ITUNES_CHARTS, 3000);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.feed?.entry || []).map(e => ({
+        id: `itunes_chart_${e.id?.attributes?.['im:id'] || Math.random().toString(36).substr(2, 6)}`,
+        title: e['im:name']?.label || 'Canción',
+        artist: e['im:artist']?.label || 'Artista',
+        album: e['im:collection']?.['im:name']?.label || 'Top Hit',
+        duration: 210,
+        cover: (e['im:image']?.[2]?.label || '').replace('170x170bb', '600x600bb'),
+        previewUrl: e.link?.[1]?.attributes?.href || '',
+        isOnline: true,
+        isOffline: false
+      }));
+    } catch (e) {
+      return this._getAudiusTrending();
+    }
+  }
+
+  async _getAudiusTrending() {
+    try {
+      const res = await this._fetch(AUDIUS_TRENDING, 3000);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.data || []).map(t => ({
+        id: `audius_${t.id}`,
+        audiusId: t.id,
+        title: t.title,
+        artist: t.user?.name || 'Artista Audius',
+        album: 'Audius Trending',
+        duration: t.duration || 180,
+        cover: t.artwork?.['480x480'] || t.artwork?.['150x150'] || null,
+        previewUrl: `https://discoveryprovider.audius.co/v1/tracks/${t.id}/stream?app_name=AuraMusicPlayer`,
+        isOnline: true,
+        isOffline: false
+      }));
+    } catch (e) {
+      return [];
+    }
+  }
+
   async getRelatedTracks(track) {
     if (!track) return [];
-    const query = `${track.artist} similar music`;
+    const query = `${track.artist} hits`;
     const results = await this.searchGlobalTracks(query);
     return results.filter(t => t.id !== track.id && t.title !== track.title).slice(0, 8);
   }
@@ -50,78 +99,53 @@ class StreamingService {
     if (this._searchCache.has(key)) return this._searchCache.get(key) || [];
 
     try {
-      const itunes = await this._searchItunes(q);
-      if (itunes.length > 0) { this._searchCache.set(key, itunes); return itunes; }
+      const url = `${ITUNES_SEARCH}?term=${encodeURIComponent(q)}&media=music&entity=song&limit=30`;
+      const res = await this._fetch(url, 3500);
+      if (res.ok) {
+        const data = await res.json();
+        const results = (data.results || []).map(r => ({
+          id: `online_${r.trackId}`,
+          trackId: r.trackId,
+          title: r.trackName,
+          artist: r.artistName || 'Artista Desconocido',
+          album: r.collectionName || 'Single',
+          duration: Math.round((r.trackTimeMillis || 0) / 1000),
+          cover: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '600x600bb') : null,
+          previewUrl: r.previewUrl || '',
+          path: r.previewUrl || '',
+          isOnline: true,
+          isOffline: false
+        }));
+        if (results.length > 0) {
+          this._searchCache.set(key, results);
+          return results;
+        }
+      }
     } catch (e) {}
 
-    const invid = await this._searchInvidious(q);
-    if (invid.length > 0) { this._searchCache.set(key, invid); return invid; }
-
-    const piped = await this._searchPiped(q);
-    this._searchCache.set(key, piped);
-    return piped;
+    const invidResults = await this._searchInvidiousFallback(q);
+    this._searchCache.set(key, invidResults);
+    return invidResults;
   }
 
-  async getAudioStreamUrl(track) {
-    if (!track) return '';
-    const cacheId = track.videoId || track.id || track.path;
-    if (this._streamCache.has(cacheId)) return this._streamCache.get(cacheId) || '';
-
-    if (track.videoId) {
-      const url = await this._resolveStream(track.videoId);
-      if (url) { this._streamCache.set(cacheId, url); return url; }
-    }
-    if (track.artist && track.title) {
-      const vId = await this._resolveVideoId(track.artist, track.title);
-      if (vId) {
-        track.videoId = vId;
-        const url = await this._resolveStream(vId);
-        if (url) { this._streamCache.set(cacheId, url); return url; }
-      }
-    }
-    const fallback = track.previewUrl || (track.path?.startsWith('http') ? track.path : '');
-    if (fallback) this._streamCache.set(cacheId, fallback);
-    return fallback;
-  }
-
-  async _searchItunes(query) {
-    const url = `${ITUNES_SEARCH}?term=${encodeURIComponent(query)}&media=music&entity=song&limit=25`;
-    const res = await this._fetch(url, TIMEOUT_MS);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return (data.results || []).map((r) => ({
-      id: 'online_' + r.trackId,
-      trackId: r.trackId,
-      videoId: null,
-      title: r.trackName,
-      artist: r.artistName || 'Artista Desconocido',
-      album: r.collectionName || 'Single',
-      duration: Math.round((r.trackTimeMillis || 0) / 1000),
-      cover: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb', '600x600bb') : null,
-      path: r.previewUrl || '',
-      previewUrl: r.previewUrl || '',
-      isOnline: true,
-      isOffline: false
-    }));
-  }
-
-  async _searchInvidious(query) {
-    for (let i = 0; i < INVID.length; i++) {
-      const base = INVID[(this._iIdx + i) % INVID.length];
+  async _searchInvidiousFallback(query) {
+    for (let i = 0; i < INVIDIOUS_HOSTS.length; i++) {
+      const host = INVIDIOUS_HOSTS[(this._hostIdx + i) % INVIDIOUS_HOSTS.length];
       try {
-        const res = await this._fetch(`${base}/api/v1/search?q=${encodeURIComponent(query + ' audio')}&type=video`, TIMEOUT_MS);
+        const res = await this._fetch(`${host}/api/v1/search?q=${encodeURIComponent(query + ' audio')}&type=video`, TIMEOUT_MS);
         if (!res.ok) continue;
         const items = await res.json();
         if (Array.isArray(items) && items.length > 0) {
-          this._iIdx = (this._iIdx + i) % INVID.length;
-          return items.slice(0, 25).map((item) => ({
-            id: 'online_' + item.videoId,
+          this._hostIdx = (this._hostIdx + i) % INVIDIOUS_HOSTS.length;
+          return items.slice(0, 25).map(item => ({
+            id: `online_${item.videoId}`,
             videoId: item.videoId,
             title: item.title,
             artist: item.author || 'Artista Desconocido',
             album: 'YouTube Music',
             duration: item.lengthSeconds || 0,
-            cover: item.videoThumbnails?.[0]?.url?.startsWith('http') ? item.videoThumbnails[0].url : `${base}${item.videoThumbnails?.[0]?.url || ''}`,
+            cover: item.videoThumbnails?.[0]?.url || null,
+            previewUrl: '',
             path: '',
             isOnline: true,
             isOffline: false
@@ -132,70 +156,73 @@ class StreamingService {
     return [];
   }
 
-  async _searchPiped(query) {
-    for (let i = 0; i < PIPED.length; i++) {
-      const base = PIPED[(this._pIdx + i) % PIPED.length];
+  async getAudioStreamUrl(track) {
+    if (!track) return '';
+    const cacheKey = track.videoId || track.id || track.path;
+    if (this._streamCache.has(cacheKey)) return this._streamCache.get(cacheKey) || '';
+
+    // Nivel 1: IPC Nativo en Electron (Directo, sin CORS)
+    try {
+      const ipcRes = await platform.getYoutubeStream({ artist: track.artist, title: track.title, query: track.videoId ? undefined : `${track.artist} - ${track.title}` });
+      if (ipcRes?.url) {
+        this._streamCache.set(cacheKey, ipcRes.url);
+        return ipcRes.url;
+      }
+    } catch (e) {}
+
+    // Nivel 2: Invidious Multi-Instancia (Web / Android)
+    const invidStream = await this._resolveInvidiousStream(track);
+    if (invidStream) {
+      this._streamCache.set(cacheKey, invidStream);
+      return invidStream;
+    }
+
+    // Nivel 3: Audius Stream o iTunes Preview Garantizado
+    if (track.audiusId) {
+      const audiusUrl = `https://discoveryprovider.audius.co/v1/tracks/${track.audiusId}/stream?app_name=AuraMusicPlayer`;
+      this._streamCache.set(cacheKey, audiusUrl);
+      return audiusUrl;
+    }
+
+    const fallback = track.previewUrl || (track.path?.startsWith('http') ? track.path : '');
+    if (fallback) this._streamCache.set(cacheKey, fallback);
+    return fallback;
+  }
+
+  async _resolveInvidiousStream(track) {
+    let vid = track.videoId;
+    if (!vid && track.artist && track.title) {
+      vid = await this._searchVideoId(track.artist, track.title);
+      if (vid) track.videoId = vid;
+    }
+    if (!vid) return null;
+
+    for (const host of INVIDIOUS_HOSTS) {
       try {
-        const res = await this._fetch(`${base}/search?q=${encodeURIComponent(query)}&filter=music_songs`, TIMEOUT_MS);
+        const res = await this._fetch(`${host}/api/v1/videos/${vid}`, TIMEOUT_MS);
         if (!res.ok) continue;
         const data = await res.json();
-        const items = data.items || [];
-        if (items.length > 0) {
-          this._pIdx = (this._pIdx + i) % PIPED.length;
-          return items.slice(0, 25).map((item) => ({
-            id: 'online_' + (item.url ? item.url.replace('/watch?v=', '') : item.id),
-            videoId: item.url ? item.url.replace('/watch?v=', '') : item.id,
-            title: item.title,
-            artist: item.uploaderName || 'Artista Desconocido',
-            album: 'Streaming Global',
-            duration: item.duration || 0,
-            cover: item.thumbnail || null,
-            path: '',
-            isOnline: true,
-            isOffline: false
-          }));
+        const audios = (data.adaptiveFormats || []).filter(f => f.type && f.type.includes('audio'));
+        if (audios.length > 0) {
+          audios.sort((a, b) => parseInt(b.bitrate || '0', 10) - parseInt(a.bitrate || '0', 10));
+          if (audios[0]?.url) return audios[0].url;
         }
       } catch (e) {}
     }
-    return [];
+    return null;
   }
 
-  async _resolveVideoId(artist, title) {
+  async _searchVideoId(artist, title) {
     const q = `${artist} ${title} official audio`;
-    for (const base of INVID) {
+    for (const host of INVIDIOUS_HOSTS) {
       try {
-        const res = await this._fetch(`${base}/api/v1/search?q=${encodeURIComponent(q)}&type=video`, 2400);
+        const res = await this._fetch(`${host}/api/v1/search?q=${encodeURIComponent(q)}&type=video`, TIMEOUT_MS);
         if (!res.ok) continue;
         const items = await res.json();
         if (items?.[0]?.videoId) return items[0].videoId;
       } catch (e) {}
     }
     return null;
-  }
-
-  async _resolveStream(videoId) {
-    for (const base of INVID) {
-      try {
-        const res = await this._fetch(`${base}/api/v1/videos/${videoId}`, TIMEOUT_MS);
-        if (!res.ok) continue;
-        const data = await res.json();
-        const audios = (data.adaptiveFormats || []).filter(f => f.type?.includes('audio'));
-        const m4a = audios.find(f => f.container === 'm4a') || audios[0];
-        if (m4a?.url?.startsWith('http')) return m4a.url;
-        if (data.formatStreams?.[0]?.url?.startsWith('http')) return data.formatStreams[0].url;
-      } catch (e) {}
-    }
-    for (const base of PIPED) {
-      try {
-        const res = await this._fetch(`${base}/streams/${videoId}`, TIMEOUT_MS);
-        if (!res.ok) continue;
-        const data = await res.json();
-        const audios = data.audioStreams || [];
-        const bestAudio = audios.find(a => a.format === 'M4A') || audios[0];
-        if (bestAudio?.url?.startsWith('http')) return bestAudio.url;
-      } catch (e) {}
-    }
-    return '';
   }
 
   async _fetch(url, timeoutMs) {

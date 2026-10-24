@@ -1,4 +1,3 @@
-// @ts-check
 // Gestor de Descargas Offline y Persistencia Híbrida Multiplataforma (IndexedDB + Electron Disk)
 import { platform } from '../core/platform-bridge.js';
 import { streamingService } from './streaming-service.js';

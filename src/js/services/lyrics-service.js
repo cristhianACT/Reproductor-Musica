@@ -1,4 +1,3 @@
-// @ts-check
 // Servicio de Letras Sincronizadas en Tiempo Real mediante LRCLIB (<200 líneas)
 
 const LRCLIB_API_BASE = 'https://lrclib.net/api';

@@ -38,5 +38,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Descargas offline en disco
   saveDownloadedTrack: (data) => ipcRenderer.invoke('offline:saveTrack', data),
   getDownloadsDir: () => ipcRenderer.invoke('offline:getDownloadsDir'),
-  deleteDownloadedTrack: (filePath) => ipcRenderer.invoke('offline:deleteTrack', filePath)
+  deleteDownloadedTrack: (filePath) => ipcRenderer.invoke('offline:deleteTrack', filePath),
+
+  // Extractor de audio libre (Nivel 1)
+  getYoutubeStream: (data) => ipcRenderer.invoke('get-youtube-stream', data)
 });
+

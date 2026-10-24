@@ -1,4 +1,3 @@
-// @ts-check
 // Controlador de reproducción de audio, sincronización con Player Bar, Lyrics y MediaSession (<250 líneas)
 import { DOM } from '../ui/dom-elements.js';
 import { EQ_PRESETS } from '../audio-engine.js';

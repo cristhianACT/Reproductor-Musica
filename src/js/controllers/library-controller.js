@@ -1,4 +1,3 @@
-// @ts-check
 // Controlador de gestión de biblioteca, Home Feed, búsqueda híbrida y descargas (<250 líneas)
 import { DOM } from '../ui/dom-elements.js';
 import { Storage } from '../storage.js';
@@ -136,7 +135,8 @@ export class LibraryController {
   async _renderCategorizedSearch(query) {
     const { trackTable: table, gridView: grid, homeFeedView: hf, categorizedSearchView: cs, libraryTabsNav: lt, hero: h } = DOM.content;
     [table, grid, hf, lt, h].forEach(el => { if (el) el.style.display = 'none'; });
-    if (cs) cs.style.display = 'block';
+    if (!cs) return;
+    cs.style.display = 'block';
 
     const q = query.toLowerCase();
     const localMatches = this.state.allTracks.filter(t => (t.title && t.title.toLowerCase().includes(q)) || (t.artist && t.artist.toLowerCase().includes(q)) || (t.album && t.album.toLowerCase().includes(q)));
@@ -163,7 +163,8 @@ export class LibraryController {
 
     if (currentView === 'home') {
       [table, grid, lt, h, quickGrid].forEach(el => { if (el) el.style.display = 'none'; });
-      if (hf) hf.style.display = 'block';
+      if (!hf) return;
+      hf.style.display = 'block';
 
       if (!this._cachedFeed) {
         streamingService.getHomeFeed(this._activeMood).then(feed => {

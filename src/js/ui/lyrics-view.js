@@ -1,4 +1,3 @@
-// @ts-check
 // Vista de Letras Sincronizadas en Tiempo Real (Emil Kowalski + Impeccable) (<200 líneas)
 import { escapeHtml } from '../utils/formatters.js';
 import { lyricsService } from '../services/lyrics-service.js';

@@ -513,3 +513,39 @@ ipcMain.handle('music:getSampleMusic', async () => {
   }
   return tracks;
 });
+
+// Nivel 1: Extractor de audio libre nativo en Electron (Cero API Keys)
+ipcMain.handle('get-youtube-stream', async (_event, { artist, title, query }) => {
+  const searchTerm = query || `${artist || ''} - ${title || ''} official audio`.trim();
+  if (!searchTerm) return null;
+  try {
+    const res = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+    const html = await res.text();
+    const idx = html.indexOf('"videoId":"');
+    const vid = idx !== -1 ? html.substring(idx + 11, idx + 22) : null;
+    if (vid) {
+      const instances = ['https://yt.chocolatemoo53.com', 'https://inv.nadeko.net', 'https://invidious.tiekoetter.com'];
+      for (const inst of instances) {
+        try {
+          const sRes = await fetch(`${inst}/api/v1/videos/${vid}`, { signal: AbortSignal.timeout(3500) });
+          if (!sRes.ok) continue;
+          const sData = await sRes.json();
+          const audios = (sData.adaptiveFormats || []).filter(f => f.type && f.type.includes('audio'));
+          if (audios.length > 0) {
+            audios.sort((a, b) => parseInt(b.bitrate || '0') - parseInt(a.bitrate || '0'));
+            return { url: audios[0].url, format: audios[0].type, videoId: vid };
+          }
+        } catch (err) {}
+      }
+    }
+  } catch (err) {
+    console.warn('Error resolviendo YouTube stream en Electron IPC:', err);
+  }
+  return null;
+});
+

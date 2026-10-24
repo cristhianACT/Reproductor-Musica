@@ -190,11 +190,14 @@ class PlatformBridge {
 
   async deleteDownloadedTrack(filePath) {
     // @ts-ignore
-    if (this.isElectron && window.electronAPI?.deleteDownloadedTrack) {
-      // @ts-ignore
-      return await window.electronAPI.deleteDownloadedTrack(filePath);
-    }
+    if (this.isElectron && window.electronAPI?.deleteDownloadedTrack) return await window.electronAPI.deleteDownloadedTrack(filePath);
     return false;
+  }
+
+  async getYoutubeStream(data) {
+    // @ts-ignore
+    if (this.isElectron && window.electronAPI?.getYoutubeStream) return await window.electronAPI.getYoutubeStream(data);
+    return null;
   }
 
   // ==========================================
