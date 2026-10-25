@@ -52,6 +52,11 @@ export function renderHeroBanner(currentView, allTracks, extraMeta) {
     const tracks = allTracks.filter(t => t.album === albumName);
     const firstCover = tracks.find(t => t.cover)?.cover;
     if (heroCover) heroCover.innerHTML = firstCover ? `<img src="${firstCover}">` : `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>`;
+  } else if (currentView.startsWith('online-album:')) {
+    const alb = extraMeta || {};
+    if (heroTag) heroTag.textContent = 'Álbum Online';
+    if (heroTitle) heroTitle.textContent = alb.title || 'Álbum';
+    if (heroCover) heroCover.innerHTML = alb.cover ? `<img src="${alb.cover}" alt="Cover">` : `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>`;
   } else if (currentView.startsWith('artist:')) {
     const artistName = decodeURIComponent(currentView.replace('artist:', ''));
     if (heroTag) heroTag.textContent = 'Artista';

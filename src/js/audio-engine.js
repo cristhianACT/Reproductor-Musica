@@ -73,18 +73,8 @@ export class AudioEngine {
     }
   }
 
-  addToQueueNext(track) {
-    if (!track) return;
-    if (!this.queue.length) return this.setQueue([track], 0, true);
-    this.queue.splice(this.currentIndex + 1, 0, track);
-    this._generateShuffleOrder();
-  }
-  addToQueueEnd(track) {
-    if (!track) return;
-    if (!this.queue.length) return this.setQueue([track], 0, true);
-    this.queue.push(track);
-    this._generateShuffleOrder();
-  }
+  addToQueueNext(t) { if (!t) return; if (!this.queue.length) return this.setQueue([t], 0, true); this.queue.splice(this.currentIndex + 1, 0, t); this._generateShuffleOrder(); }
+  addToQueueEnd(t) { if (!t) return; if (!this.queue.length) return this.setQueue([t], 0, true); this.queue.push(t); this._generateShuffleOrder(); }
 
   removeFromQueue(index) {
     if (index < 0 || index >= this.queue.length) return;
@@ -118,6 +108,8 @@ export class AudioEngine {
     if (index < 0 || index >= this.queue.length) return;
     this.currentIndex = index;
     const track = this.queue[index];
+    if (this.onTrackChange) this.onTrackChange(track, index);
+    Storage.addToHistory(track);
 
     let audioSrc = '';
     if (offlineManager.isOffline(track.id)) {
@@ -131,14 +123,24 @@ export class AudioEngine {
     }
     if (!audioSrc) audioSrc = platform.getAudioStreamUrl(track);
 
+    if (!audioSrc) {
+      if (this.onError) this.onError(new Error('stream_unavailable'));
+      return;
+    }
+
     this.audio.src = audioSrc;
     this.audio.load();
-    if (this.onTrackChange) this.onTrackChange(track, index);
-    Storage.addToHistory(track);
     if (autoPlay) {
       await this.graph.resume(this.audio);
       this.audio.play().catch(err => console.warn('Autoplay bloqueado:', err));
     }
+    this._preloadNextTrack();
+  }
+
+  _preloadNextTrack() {
+    const nextIdx = this.isShuffle ? this.shuffleIndices[this.shufflePointer + 1] : this.currentIndex + 1;
+    const next = this.queue[nextIdx];
+    if (next && next.isOnline && !offlineManager.isOffline(next.id)) streamingService.getAudioStreamUrl(next).catch(() => {});
   }
 
   async play() {
@@ -186,12 +188,8 @@ export class AudioEngine {
 
   seekTo(seconds) {
     if (typeof seconds !== 'number' || isNaN(seconds) || !isFinite(seconds)) return;
-    const curTrack = this.getCurrentTrack();
-    const dur = (this.audio.duration && isFinite(this.audio.duration) && this.audio.duration > 0)
-      ? this.audio.duration
-      : (curTrack?.duration || 0);
-    const target = dur > 0 ? Math.max(0, Math.min(seconds, dur)) : Math.max(0, seconds);
-    try { this.audio.currentTime = target; } catch (err) {}
+    const dur = (this.audio.duration && isFinite(this.audio.duration) && this.audio.duration > 0) ? this.audio.duration : (this.getCurrentTrack()?.duration || 0);
+    try { this.audio.currentTime = dur > 0 ? Math.max(0, Math.min(seconds, dur)) : Math.max(0, seconds); } catch (err) {}
   }
 
   setVolume(vol) {
@@ -220,7 +218,8 @@ export class AudioEngine {
   cycleRepeatMode() {
     const modes = ['none', 'all', 'one'];
     this.repeatMode = modes[(modes.indexOf(this.repeatMode) + 1) % modes.length];
-    Storage.saveSettings({ repeatMode: this.repeatMode }); return this.repeatMode;
+    Storage.saveSettings({ repeatMode: this.repeatMode });
+    return this.repeatMode;
   }
 
   _handleTrackEnded() {

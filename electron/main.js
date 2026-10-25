@@ -4,6 +4,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs';
 import { Readable } from 'node:stream';
 import { parseFile, selectCover } from 'music-metadata';
+import ytSearch from 'yt-search';
+import { Ytdl } from '@distube/ytdl-core';
+
+const ytdl = new Ytdl();
+const streamUrlCache = new Map();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +27,23 @@ protocol.registerSchemesAsPrivileged([
     }
   }
 ]);
+
+// Prevenir múltiples instancias simultáneas y bloqueos de caché SQLite/disk_cache en Windows
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+// Desactivar flags de shader disk cache que provocan error Acceso Denegado (0x5) en Windows
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 
 let mainWindow = null;
 let isMiniPlayer = false;
@@ -67,10 +89,10 @@ function createWindow() {
 
 // Configuración de protocolo y ciclo de vida de la app
 app.whenReady().then(() => {
-  // Configuración de CORS y cabeceras para streaming sin restricciones (YouTube Music, Piped, Invidious)
+  // Configuración de CORS y cabeceras para streaming sin restricciones (YouTube Music, Piped, Invidious, Apple, Deezer)
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     const requestHeaders = details.requestHeaders || {};
-    if (details.url.includes('googlevideo.com') || details.url.includes('piped') || details.url.includes('invidious')) {
+    if (details.url.startsWith('http:') || details.url.startsWith('https:')) {
       delete requestHeaders['Origin'];
       delete requestHeaders['Referer'];
     }
@@ -79,9 +101,9 @@ app.whenReady().then(() => {
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const responseHeaders = details.responseHeaders || {};
-    responseHeaders['Access-Control-Allow-Origin'] = ['*'];
-    responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, POST, OPTIONS'];
-    responseHeaders['Access-Control-Allow-Headers'] = ['*'];
+    responseHeaders['access-control-allow-origin'] = ['*'];
+    responseHeaders['access-control-allow-methods'] = ['GET, HEAD, POST, OPTIONS, PUT, DELETE'];
+    responseHeaders['access-control-allow-headers'] = ['*'];
     callback({ responseHeaders });
   });
 
@@ -514,38 +536,90 @@ ipcMain.handle('music:getSampleMusic', async () => {
   return tracks;
 });
 
-// Nivel 1: Extractor de audio libre nativo en Electron (Cero API Keys)
-ipcMain.handle('get-youtube-stream', async (_event, { artist, title, query }) => {
-  const searchTerm = query || `${artist || ''} - ${title || ''} official audio`.trim();
-  if (!searchTerm) return null;
+// Respaldo de Catálogo: Deezer Public API (Cero API Keys)
+ipcMain.handle('music:searchDeezer', async (_event, query) => {
+  if (!query) return [];
   try {
-    const res = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9'
-      }
+    const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=30`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-    const html = await res.text();
-    const idx = html.indexOf('"videoId":"');
-    const vid = idx !== -1 ? html.substring(idx + 11, idx + 22) : null;
-    if (vid) {
-      const instances = ['https://yt.chocolatemoo53.com', 'https://inv.nadeko.net', 'https://invidious.tiekoetter.com'];
-      for (const inst of instances) {
-        try {
-          const sRes = await fetch(`${inst}/api/v1/videos/${vid}`, { signal: AbortSignal.timeout(3500) });
-          if (!sRes.ok) continue;
-          const sData = await sRes.json();
-          const audios = (sData.adaptiveFormats || []).filter(f => f.type && f.type.includes('audio'));
-          if (audios.length > 0) {
-            audios.sort((a, b) => parseInt(b.bitrate || '0') - parseInt(a.bitrate || '0'));
-            return { url: audios[0].url, format: audios[0].type, videoId: vid };
-          }
-        } catch (err) {}
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data || []).map(d => ({
+      id: `deezer_${d.id}`,
+      title: d.title,
+      artist: d.artist?.name || 'Artista Desconocido',
+      album: d.album?.title || 'Deezer',
+      duration: d.duration || 180,
+      cover: d.album?.cover_xl || d.album?.cover_big || d.album?.cover_medium || null,
+      previewUrl: d.preview || '',
+      path: d.preview || '',
+      isOnline: true,
+      isOffline: false
+    }));
+  } catch (err) {
+    return [];
+  }
+});
+
+// Nivel 1: Extractor de audio libre nativo en Electron (Cero API Keys, <800ms)
+ipcMain.handle('get-youtube-stream', async (_event, { artist, title, query }) => {
+  let cleanTitle = (title || '')
+    .replace(/\s*[\(\[](?:(?:\d{4}\s+)?remaster(?:ed)?|remaster(?:ed)?(?:\s+\d{4})?|official\s*(?:video|audio|music\s*video)?|deluxe|explicit|radio\s*edit|bonus\s*track|version|anniversary|expanded)[\)\]]/gi, '')
+    .replace(/\s*-\s*(?:remaster(?:ed)?(?:\s*\d{4})?|live|single|ep\s*version).*$/gi, '')
+    .trim();
+  const cleanArtist = (artist || '').replace(/\s*-\s*topic$/i, '').trim();
+  const searchTerm = query || `${cleanArtist} ${cleanTitle} audio`.trim();
+  if (!searchTerm) return null;
+
+  const cacheKey = searchTerm.toLowerCase();
+  const cached = streamUrlCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return { url: cached.url, format: cached.format, videoId: cached.videoId };
+  }
+
+  let vid = null;
+  try {
+    const searchRes = await ytSearch(searchTerm);
+    if (searchRes?.videos?.length > 0) {
+      vid = searchRes.videos[0].videoId;
+    }
+  } catch (e) {
+    console.warn('yt-search error:', e.message);
+  }
+
+  if (!vid && cleanTitle) {
+    try {
+      const fallbackSearch = await ytSearch(`${cleanTitle} audio`);
+      if (fallbackSearch?.videos?.length > 0) {
+        vid = fallbackSearch.videos[0].videoId;
       }
+    } catch (e) {}
+  }
+
+  if (!vid) return null;
+
+  try {
+    const info = await ytdl.getInfo(vid);
+    const audios = (info.formats || []).filter(f => f.hasAudio && !f.hasVideo);
+    if (audios.length > 0) {
+      audios.sort((a, b) => (b.audioBitrate || b.bitrate || 0) - (a.audioBitrate || a.bitrate || 0));
+      const best = audios[0];
+      const result = {
+        url: best.url,
+        format: best.mimeType || 'audio/mp4',
+        videoId: vid
+      };
+      streamUrlCache.set(cacheKey, {
+        ...result,
+        expiresAt: Date.now() + 4 * 60 * 60 * 1000
+      });
+      return result;
     }
   } catch (err) {
-    console.warn('Error resolviendo YouTube stream en Electron IPC:', err);
+    console.warn('ytdl error extrayendo stream:', err.message);
   }
+
   return null;
 });
 

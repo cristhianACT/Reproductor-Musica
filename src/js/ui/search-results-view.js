@@ -4,17 +4,17 @@ import { Storage } from '../storage.js';
 import { offlineManager } from '../services/offline-manager.js';
 
 /**
- * Renderiza la vista de búsqueda categorizada
+ * Renderiza la vista de búsqueda categorizada con canciones mundiales y discografía
  * @param {HTMLElement} container 
- * @param {{ query: string, topResult: any, onlineTracks: Array<any>, localTracks: Array<any> }} results 
- * @param {{ onPlay: (track: any) => void, onDownload: (track: any) => void, onFavorite: (id: string) => void }} handlers 
+ * @param {{ query: string, topResult: any, onlineTracks: Array<any>, onlineAlbums: Array<any>, localTracks: Array<any> }} results 
+ * @param {{ onPlay: (track: any) => void, onAlbumClick?: (album: any) => void, onDownload: (track: any) => void, onFavorite: (id: string) => void }} handlers 
  */
 export function renderCategorizedSearch(container, results, handlers) {
   if (!container) return;
-  const { query, topResult, onlineTracks = [], localTracks = [] } = results;
+  const { query, topResult, onlineTracks = [], onlineAlbums = [], localTracks = [] } = results;
   const favs = Storage.getFavorites();
 
-  if (!topResult && !onlineTracks.length && !localTracks.length) {
+  if (!topResult && !onlineTracks.length && !onlineAlbums.length && !localTracks.length) {
     container.innerHTML = `
       <div class="search-empty-state">
         <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -55,13 +55,44 @@ export function renderCategorizedSearch(container, results, handlers) {
     </div>
   ` : '';
 
-  const onlineListHtml = onlineTracks.slice(0, 5).map((t, idx) => _renderSearchTrackRow(t, favs, idx)).join('');
+  const topSongs = onlineTracks.slice(0, 4);
+  const remainingOnline = onlineTracks.slice(4);
+
+  const topSongsHtml = topSongs.length > 0 ? `
+    <div class="search-online-column">
+      <h2 class="search-section-title">Canciones destacadas</h2>
+      <div class="search-online-list">
+        ${topSongs.map(t => _renderSearchTrackRow(t, favs)).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const albumsHtml = onlineAlbums.length > 0 ? `
+    <section class="search-section search-albums-section">
+      <div class="search-section-header">
+        <h2 class="search-section-title">Álbumes y Discografía</h2>
+        <span class="search-section-count">${onlineAlbums.length} álbumes</span>
+      </div>
+      <div class="search-albums-grid">
+        ${onlineAlbums.map(a => _renderAlbumCard(a)).join('')}
+      </div>
+    </section>
+  ` : '';
+
+  const remainingHtml = remainingOnline.length > 0 ? `
+    <section class="search-section">
+      <h2 class="search-section-title">Todas las Canciones (${onlineTracks.length})</h2>
+      <div class="search-online-list">
+        ${remainingOnline.map(t => _renderSearchTrackRow(t, favs)).join('')}
+      </div>
+    </section>
+  ` : '';
 
   const localListHtml = localTracks.length > 0 ? `
     <section class="search-section">
       <h2 class="search-section-title">En tu biblioteca y descargas</h2>
       <div class="search-online-list">
-        ${localTracks.slice(0, 6).map((t, idx) => _renderSearchTrackRow(t, favs, idx)).join('')}
+        ${localTracks.slice(0, 8).map(t => _renderSearchTrackRow(t, favs)).join('')}
       </div>
     </section>
   ` : '';
@@ -70,21 +101,39 @@ export function renderCategorizedSearch(container, results, handlers) {
     <div class="search-results-grid">
       <div class="search-split-top">
         ${topResultHtml}
-        <div class="search-online-column">
-          <h2 class="search-section-title">Canciones Online</h2>
-          <div class="search-online-list">
-            ${onlineListHtml}
-          </div>
-        </div>
+        ${topSongsHtml}
       </div>
+      ${albumsHtml}
+      ${remainingHtml}
       ${localListHtml}
     </div>
   `;
 
-  _bindSearchEvents(container, [topResult, ...onlineTracks, ...localTracks].filter(Boolean), handlers);
+  _bindSearchEvents(container, [topResult, ...onlineTracks, ...localTracks].filter(Boolean), onlineAlbums, handlers);
 }
 
-function _renderSearchTrackRow(t, favs, idx) {
+function _renderAlbumCard(a) {
+  const coverHtml = a.cover 
+    ? `<img src="${a.cover}" alt="${escapeHtml(a.title)}" loading="lazy">` 
+    : `<svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>`;
+  return `
+    <div class="search-album-card" data-album-id="${a.id}">
+      <div class="search-album-cover">
+        ${coverHtml}
+        <button class="search-album-play-btn" data-action="view-album" aria-label="Ver álbum">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        </button>
+      </div>
+      <div class="search-album-info">
+        <span class="search-album-title" title="${escapeHtml(a.title)}">${escapeHtml(a.title)}</span>
+        <span class="search-album-artist" title="${escapeHtml(a.artist)}">${escapeHtml(a.artist)}</span>
+        <span class="search-album-meta">${a.year ? `${a.year} · ` : ''}${a.trackCount} canciones</span>
+      </div>
+    </div>
+  `;
+}
+
+function _renderSearchTrackRow(t, favs) {
   const isOff = t.isOffline || offlineManager.isOffline(t.id);
   const isFav = favs.has(t.id);
   const coverHtml = t.cover ? `<img src="${t.cover}" alt="Cover" loading="lazy">` : `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>`;
@@ -121,14 +170,25 @@ function _renderSearchTrackRow(t, favs, idx) {
   `;
 }
 
-function _bindSearchEvents(container, allTracks, handlers) {
-  const map = new Map(allTracks.map(t => [t.id, t]));
+function _bindSearchEvents(container, allTracks, albums, handlers) {
+  const trackMap = new Map(allTracks.map(t => [t.id, t]));
+  const albumMap = new Map((albums || []).map(a => [a.id, a]));
 
   container.addEventListener('click', (e) => {
+    const albumCard = e.target.closest('[data-album-id]');
+    if (albumCard) {
+      const albumId = albumCard.getAttribute('data-album-id');
+      const album = albumMap.get(albumId);
+      if (album && handlers.onAlbumClick) {
+        handlers.onAlbumClick(album);
+        return;
+      }
+    }
+
     const row = e.target.closest('[data-id]');
     if (!row) return;
     const trackId = row.getAttribute('data-id');
-    const track = map.get(trackId);
+    const track = trackMap.get(trackId);
     if (!track) return;
 
     if (e.target.closest('[data-action="download"]')) {

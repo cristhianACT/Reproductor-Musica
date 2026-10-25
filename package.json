@@ -49,6 +49,8 @@
   "dependencies": {
     "@capacitor/core": "^8.5.3",
     "@capacitor/filesystem": "^8.1.5",
-    "music-metadata": "^11.15.0"
+    "@distube/ytdl-core": "^5.0.1",
+    "music-metadata": "^11.15.0",
+    "yt-search": "^2.13.1"
   }
 }

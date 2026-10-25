@@ -636,18 +636,14 @@
 /* ==========================================================
    MODO DE BAJO CONSUMO (LOW-SPEC MODE)
    ========================================================== */
-body.low-spec-mode .titlebar,
-body.low-spec-mode .player-bar,
-body.low-spec-mode .content-topbar,
-body.low-spec-mode .mobile-bottom-nav {
+body.low-spec-mode,
+body.low-spec-mode * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-
 body.low-spec-mode .grid-card,
-body.low-spec-mode .modal-card {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+body.low-spec-mode .modal-card,
+body.low-spec-mode .home-card {
   box-shadow: none !important;
 }
 

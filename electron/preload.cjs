@@ -40,7 +40,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDownloadsDir: () => ipcRenderer.invoke('offline:getDownloadsDir'),
   deleteDownloadedTrack: (filePath) => ipcRenderer.invoke('offline:deleteTrack', filePath),
 
-  // Extractor de audio libre (Nivel 1)
-  getYoutubeStream: (data) => ipcRenderer.invoke('get-youtube-stream', data)
+  // Extractor de audio libre (Nivel 1) y catálogo de respaldo Deezer
+  getYoutubeStream: (data) => ipcRenderer.invoke('get-youtube-stream', data),
+  searchDeezer: (query) => ipcRenderer.invoke('music:searchDeezer', query)
 });
 

@@ -24,6 +24,8 @@ class AppState extends EventTarget {
 
     // Track seleccionado para menú contextual
     this.selectedTrackForMenu = null;
+    this._onlineAlbum = null;
+    this._onlineAlbumTracks = [];
   }
 
   // Métodos Pub/Sub simplificados
@@ -74,6 +76,16 @@ class AppState extends EventTarget {
 
   get libraryTab() {
     return this._libraryTab;
+  }
+
+  get onlineAlbum() {
+    return this._onlineAlbum;
+  }
+
+  setOnlineAlbum(album, tracks) {
+    this._onlineAlbum = album;
+    this._onlineAlbumTracks = Array.isArray(tracks) ? tracks : [];
+    this.setView(`online-album:${album?.collectionId || album?.id || 'view'}`);
   }
 
   setLibraryTab(tab) {
@@ -167,6 +179,8 @@ class AppState extends EventTarget {
     } else if (this._currentView === 'favorites') {
       const favs = Storage.getFavorites();
       baseTracks = this._allTracks.filter(t => favs.has(t.id));
+    } else if (this._currentView.startsWith('online-album:')) {
+      baseTracks = [...(this._onlineAlbumTracks || [])];
     } else if (this._currentView.startsWith('album:')) {
       const albumName = decodeURIComponent(this._currentView.replace('album:', ''));
       baseTracks = this._allTracks.filter(t => t.album === albumName);
